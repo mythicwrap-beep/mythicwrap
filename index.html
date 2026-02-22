@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MythicWrap™</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header>
+    <div class="logo">MythicWrap™</div>
+
+    <nav>
+        <a href="#">Accueil</a>
+        <a href="#">Produits</a>
+
+        <button id="cart-btn">
+            🛒 <span id="cart-count">0</span>
+        </button>
+
+        <button id="account-btn">Mon compte</button>
+    </nav>
+</header>
+
+<section class="hero">
+    <h1>MythicWrap™</h1>
+    <p>Une sélection moderne et sécurisée.</p>
+</section>
+
+<section class="products">
+
+    <div class="product-card">
+        <h3>Produit 1</h3>
+        <p>29€</p>
+        <button onclick="addToCart()">Ajouter au panier</button>
+    </div>
+
+    <div class="product-card">
+        <h3>Produit 2</h3>
+        <p>49€</p>
+        <button onclick="addToCart()">Ajouter au panier</button>
+    </div>
+
+    <div class="product-card">
+        <h3>Produit 3</h3>
+        <p>79€</p>
+        <button onclick="addToCart()">Ajouter au panier</button>
+    </div>
+
+</section>
+
+<section class="features">
+
+    <div class="feature-card">
+        <div class="icon">🔥</div>
+        <h3>Support 24h/24 et 7j/7</h3>
+        <p>Assistance réactive et professionnelle.</p>
+    </div>
+
+    <div class="feature-card">
+        <div class="icon">💳</div>
+        <h3>Paiement sécurisé</h3>
+        <p>Transactions fiables et protégées.</p>
+    </div>
+
+    <div class="feature-card">
+        <div class="icon">🚚</div>
+        <h3>Livraison instantanée</h3>
+        <p>Réception immédiate après validation.</p>
+    </div>
+
+</section>
+
+<!-- MODAL AUTH -->
+<div class="auth-modal" id="auth-modal">
+    <div class="auth-box">
+        <h2 id="auth-title">Connexion</h2>
+        <input type="text" id="auth-username" placeholder="Nom d'utilisateur">
+        <input type="password" id="auth-password" placeholder="Mot de passe">
+        <button id="auth-button">Se connecter</button>
+        <p id="switch-auth">Pas encore de compte ? S'inscrire</p>
+    </div>
+</div>
+
+<script src="script.js"></script>
+<!-- PANIER PANEL -->
+<div class="cart-panel" id="cart-panel">
+    <div class="cart-header">
+        <h3>Mon panier</h3>
+        <button id="close-cart">✕</button>
+    </div>
+
+    <div id="cart-items"></div>
+
+    <div class="cart-footer">
+        <p>Total : <span id="cart-total">0</span>€</p>
+    </div>
+</div>
+
+<div id="profile-panel" class="profile-panel">
+    <h3>Mon Profil</h3>
+    <p id="profile-name"></p>
+    <button onclick="closeProfile()">Fermer</button>
+</div>
+
+</body>
+</html>
