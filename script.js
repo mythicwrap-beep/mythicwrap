@@ -4,7 +4,7 @@ document.addEventListener("DOMContentLoaded", function(){
    VARIABLES
 ========================= */
 
-let cart = [];
+let cart = JSON.parse(localStorage.getItem("cartData")) || [];
 let users = JSON.parse(localStorage.getItem("users")) || [];
 let currentUser = localStorage.getItem("currentUser") || null;
 let isLoginMode = true;
@@ -18,9 +18,17 @@ window.addToCart = function(){
     const name = productCard.querySelector("h3").innerText;
     const price = parseInt(productCard.querySelector("p").innerText);
 
-    cart.push({name, price});
+    const existing = cart.find(item => item.name === name);
+
+    if(existing){
+        existing.quantity++;
+    } else {
+        cart.push({name, price, quantity:1});
+    }
+
+    saveCart();
     updateCart();
-}
+};
 
 function updateCart(){
     const cartItems = document.getElementById("cart-items");
@@ -32,25 +40,66 @@ function updateCart(){
     cartItems.innerHTML = "";
     let total = 0;
 
-    cart.forEach(item=>{
-        total += item.price;
-        cartItems.innerHTML += `<p>${item.name} - ${item.price}€</p>`;
+    cart.forEach((item, index)=>{
+        total += item.price * item.quantity;
+
+        cartItems.innerHTML += `
+            <div class="cart-item">
+                <strong>${item.name}</strong>
+                <div>
+                    <button onclick="decreaseQty(${index})">−</button>
+                    <span>${item.quantity}</span>
+                    <button onclick="increaseQty(${index})">+</button>
+                </div>
+                <div>${item.price * item.quantity}€</div>
+                <button onclick="removeItem(${index})">❌</button>
+            </div>
+        `;
     });
 
     cartTotal.innerText = total;
     cartCount.innerText = cart.length;
 }
 
-/* OUVRIR PANIER */
+window.increaseQty = function(index){
+    cart[index].quantity++;
+    saveCart();
+    updateCart();
+};
+
+window.decreaseQty = function(index){
+    if(cart[index].quantity > 1){
+        cart[index].quantity--;
+    } else {
+        cart.splice(index,1);
+    }
+    saveCart();
+    updateCart();
+};
+
+window.removeItem = function(index){
+    cart.splice(index,1);
+    saveCart();
+    updateCart();
+};
+
+function saveCart(){
+    localStorage.setItem("cartData", JSON.stringify(cart));
+}
+
+/* =========================
+   PANIER UI
+========================= */
+
 const cartBtn = document.getElementById("cart-btn");
+const closeCart = document.getElementById("close-cart");
+
 if(cartBtn){
     cartBtn.addEventListener("click", ()=>{
         document.getElementById("cart-panel").classList.add("active");
     });
 }
 
-/* FERMER PANIER */
-const closeCart = document.getElementById("close-cart");
 if(closeCart){
     closeCart.addEventListener("click", ()=>{
         document.getElementById("cart-panel").classList.remove("active");
@@ -58,7 +107,7 @@ if(closeCart){
 }
 
 /* =========================
-   AUTHENTIFICATION
+   AUTH
 ========================= */
 
 const accountBtn = document.getElementById("account-btn");
@@ -84,12 +133,7 @@ window.toggleAuthMode = function(){
 
     document.getElementById("auth-button").innerText =
         isLoginMode ? "Se connecter" : "S'inscrire";
-
-    document.querySelector(".switch-auth").innerText =
-        isLoginMode
-        ? "Pas encore de compte ? S'inscrire"
-        : "Déjà un compte ? Se connecter";
-}
+};
 
 window.handleAuth = function(){
 
@@ -119,20 +163,17 @@ window.handleAuth = function(){
 
     } else {
 
-        const userExists = users.find(u => u.username === username);
-
-        if(userExists){
+        if(users.find(u => u.username === username)){
             alert("Nom déjà utilisé");
             return;
         }
 
         users.push({username, password});
         localStorage.setItem("users", JSON.stringify(users));
-
         alert("Compte créé !");
         toggleAuthMode();
     }
-}
+};
 
 function logout(){
     currentUser = null;
@@ -141,116 +182,85 @@ function logout(){
 }
 
 function updateUserUI(){
-    if(currentUser){
-        accountBtn.innerText = "👤 " + currentUser + " (Déconnexion)";
-    } else {
-        accountBtn.innerText = "Mon compte";
+    if(accountBtn){
+        accountBtn.innerText = currentUser
+            ? "👤 " + currentUser + " (Déconnexion)"
+            : "Mon compte";
     }
 }
 
-});
-/* =============================
-   EXTENSION PANIER
-============================= */
-
-// Si cart existe déjà dans ton code, on l'utilise.
-// Sinon on le crée.
-if(typeof cart === "undefined"){
-    var cart = [];
-}
-
-// Charger panier sauvegardé
-const savedCartData = localStorage.getItem("cartData");
-if(savedCartData){
-    cart = JSON.parse(savedCartData);
-    if(typeof updateCart === "function"){
-        updateCart();
-    }
-}
-
-// Sauvegarde automatique après chaque mise à jour
-if(typeof updateCart === "function"){
-    const originalUpdateCart = updateCart;
-
-    updateCart = function(){
-        originalUpdateCart();
-        localStorage.setItem("cartData", JSON.stringify(cart));
-    };
-}
-
-// Fonction suppression si elle n'existe pas déjà
-if(typeof removeItem === "undefined"){
-    window.removeItem = function(index){
-        cart.splice(index,1);
-        if(typeof updateCart === "function"){
-            updateCart();
-        }
-    };
-}
-/* =============================
-   EXTENSION CHECKOUT
-============================= */
+/* =========================
+   CONFIRMATION COMMANDE
+========================= */
 
 const checkoutBtn = document.getElementById("checkout-btn");
 
 if(checkoutBtn){
     checkoutBtn.addEventListener("click", function(){
 
-        if(typeof currentUser !== "undefined" && !currentUser){
-            alert("Vous devez être connecté pour commander.");
+        if(!currentUser){
+            alert("Vous devez être connecté.");
             return;
         }
 
         if(cart.length === 0){
-            alert("Votre panier est vide.");
+            alert("Panier vide.");
             return;
         }
 
-        alert("Commande validée !");
+        confirmOrder();
     });
 }
-/* =============================
-   EXTENSION PAIEMENT
-============================= */
 
-function goToPayment(){
-    if(cart.length === 0){
-        alert("Panier vide.");
-        return;
-    }
+function confirmOrder(){
 
-    if(typeof currentUser !== "undefined" && !currentUser){
-        alert("Veuillez vous connecter.");
-        return;
-    }
+    const order = {
+        user: currentUser,
+        items: cart,
+        total: cart.reduce((sum,i)=> sum + (i.price*i.quantity),0),
+        date: new Date().toLocaleString()
+    };
 
-    // Remplace par ton vrai lien Stripe
-    window.location.href = "https://buy.stripe.com/test_xxxxxxxxx";
-/* =============================
-   EXTENSION PROFIL
-============================= */
+    let orders = JSON.parse(localStorage.getItem("orders")) || [];
+    orders.push(order);
+    localStorage.setItem("orders", JSON.stringify(orders));
 
-function openProfile(){
-    if(typeof currentUser !== "undefined" && currentUser){
+    cart = [];
+    saveCart();
+    updateCart();
+
+    alert("Commande confirmée 🎉");
+}
+
+/* =========================
+   PROFIL
+========================= */
+
+window.openProfile = function(){
+    if(currentUser){
         document.getElementById("profile-name").innerText =
             "Utilisateur : " + currentUser;
 
         document.getElementById("profile-panel")
             .classList.add("active");
     }
-}
+};
 
-function closeProfile(){
+window.closeProfile = function(){
     document.getElementById("profile-panel")
         .classList.remove("active");
-}
+};
 
-// Si bouton compte existe
-const accountButton = document.getElementById("account-btn");
-
-if(accountButton){
-    accountButton.addEventListener("dblclick", function(){
+if(accountBtn){
+    accountBtn.addEventListener("dblclick", ()=>{
         openProfile();
     });
 }
-}
+
+/* =========================
+   INIT
+========================= */
+
+updateCart();
+
+});
